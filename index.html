@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d0d0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="XpnsBooks">
+<link rel="manifest" href="./manifest.json">
+<title>Expense Books</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0d0d;
+  --s1: #141414;
+  --s2: #1c1c1c;
+  --border: #272727;
+  --gold: #e8c96a;
+  --gold2: #f5d97a;
+  --text: #ede8df;
+  --muted: #5a5a5a;
+  --muted2: #3a3a3a;
+  --red: #c0605a;
+  --red-dim: #2a1210;
+  --red-border: #5a2a28;
+  --green: #5bbf8a;
+  --green-dim: #0c2018;
+  --green-border: #1e5038;
+  --r: 6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+.screen { display: none; flex-direction: column; height: 100%; overflow: hidden; }
+.screen.active { display: flex; }
+
+/* ─── BOOKS SCREEN ─── */
+.books-header {
+  padding: max(env(safe-area-inset-top), 1.2rem) 1.2rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 1px solid var(--border);
+}
+.books-header h1 { font-family:'Syne',sans-serif; font-size:1.6rem; color:var(--gold); line-height:1; }
+.books-header p  { font-size:0.6rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-top:0.2rem; }
+
+.btn-new-book {
+  background: var(--gold); color: var(--bg);
+  border: none; border-radius: var(--r);
+  font-family:'IBM Plex Mono',monospace; font-size:0.75rem; font-weight:500;
+  padding: 0.5rem 0.9rem; cursor:pointer; transition:background 0.15s;
+}
+.btn-new-book:hover { background: var(--gold2); }
+
+.books-list {
+  flex:1; overflow-y:auto; padding:1rem;
+  display:flex; flex-direction:column; gap:0.75rem;
+}
+
+.book-card {
+  background:var(--s1); border:1px solid var(--border);
+  border-radius:var(--r); padding:0.9rem 1rem;
+  display:flex; align-items:center; gap:0.5rem;
+  transition:border-color 0.15s,background 0.15s;
+  animation:fadeUp 0.2s ease;
+}
+.book-card:hover { border-color:var(--gold); background:var(--s2); }
+.book-card-body  { flex:1; min-width:0; cursor:pointer; }
+.book-name       { font-family:'Syne',sans-serif; font-size:1rem; color:var(--text); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.book-meta       { font-size:0.6rem; color:var(--muted); margin-top:0.2rem; }
+.book-card-right { text-align:right; flex-shrink:0; cursor:pointer; }
+.book-total      { font-family:'Syne',sans-serif; font-size:1.05rem; }
+.book-total.pos  { color:var(--green); }
+.book-total.neg  { color:var(--red); }
+.book-total.zero { color:var(--muted); }
+.book-count      { font-size:0.58rem; color:var(--muted); margin-top:0.15rem; }
+.book-actions    { display:flex; gap:0.2rem; flex-shrink:0; }
+.book-act-btn {
+  background:none; border:none; cursor:pointer;
+  font-size:0.85rem; padding:0.3rem 0.35rem;
+  border-radius:4px; line-height:1; transition:color 0.15s, background 0.15s;
+}
+.book-act-btn.edit { color:var(--muted2); }
+.book-act-btn.edit:hover { color:var(--gold); background:rgba(232,201,106,0.08); }
+.book-act-btn.del  { color:var(--muted2); }
+.book-act-btn.del:hover  { color:var(--red); background:rgba(192,96,90,0.1); }
+
+.empty-books {
+  text-align:center; color:var(--muted); font-size:0.78rem;
+  padding:3rem 1rem; letter-spacing:0.05em; line-height:1.9;
+}
+
+/* ─── BOOK DETAIL ─── */
+.book-topbar {
+  padding: max(env(safe-area-inset-top), 1rem) 1rem 0.75rem;
+  background:var(--bg); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:0.6rem;
+}
+.btn-back {
+  background:var(--s2); border:1px solid var(--border); color:var(--text);
+  border-radius:4px; font-family:'IBM Plex Mono',monospace; font-size:0.8rem;
+  padding:0.35rem 0.65rem; cursor:pointer; flex-shrink:0; transition:border-color 0.15s;
+}
+.btn-back:hover { border-color:var(--gold); }
+.book-topbar-title {
+  font-family:'Syne',sans-serif; font-size:0.95rem; color:var(--text);
+  flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+}
+
+/* Total bar */
+.total-bar {
+  padding:0.85rem 1.2rem;
+  display:flex; justify-content:space-between; align-items:center;
+  transition:background 0.3s;
+}
+.total-bar.pos  { background:var(--green); color:#071a10; }
+.total-bar.neg  { background:var(--red);   color:#1a0705; }
+.total-bar.zero { background:var(--s2);    color:var(--muted); border-bottom:1px solid var(--border); }
+.total-bar-label { font-size:0.58rem; letter-spacing:0.12em; text-transform:uppercase; opacity:0.6; }
+.total-bar-amount { font-family:'Syne',sans-serif; font-size:1.55rem; letter-spacing:-0.02em; }
+.total-bar-right  { text-align:right; font-size:0.62rem; opacity:0.55; line-height:1.8; }
+
+/* Add form */
+.add-form {
+  background:var(--s1); border-bottom:1px solid var(--border);
+  padding:0.75rem 0.9rem;
+}
+.type-toggle { display:flex; gap:0.4rem; margin-bottom:0.6rem; }
+.type-btn {
+  flex:1; padding:0.45rem; border-radius:4px;
+  border:1px solid var(--border); background:var(--bg); color:var(--muted);
+  font-family:'IBM Plex Mono',monospace; font-size:0.72rem; font-weight:500;
+  cursor:pointer; letter-spacing:0.06em; text-transform:uppercase; transition:all 0.15s;
+}
+.type-btn.active-expense { background:var(--red-dim);   border-color:var(--red-border);   color:var(--red); }
+.type-btn.active-income  { background:var(--green-dim); border-color:var(--green-border); color:var(--green); }
+
+.add-form-3col {
+  display:grid; grid-template-columns:1fr 0.55fr 0.7fr;
+  gap:0.45rem; margin-bottom:0.5rem;
+}
+.add-form input {
+  background:var(--bg); border:1px solid var(--border); border-radius:4px;
+  color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:0.8rem;
+  padding:0.5rem 0.6rem; width:100%; outline:none; transition:border-color 0.15s;
+}
+.add-form input:focus { border-color:var(--gold); }
+.add-form input::placeholder { color:var(--muted); }
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; }
+input[type=number] { -moz-appearance:textfield; }
+
+.btn-add-entry {
+  width:100%; border:none; border-radius:4px;
+  font-family:'IBM Plex Mono',monospace; font-size:0.8rem; font-weight:500;
+  padding:0.55rem; cursor:pointer; letter-spacing:0.04em; transition:background 0.15s, transform 0.1s;
+}
+.btn-add-entry:active { transform:scale(0.98); }
+.btn-add-entry.expense { background:var(--red);   color:#fff; }
+.btn-add-entry.expense:hover { background:#d07070; }
+.btn-add-entry.income  { background:var(--green); color:#071a10; }
+.btn-add-entry.income:hover  { background:#6fd49a; }
+
+/* Column headers */
+.col-heads {
+  display:grid;
+  grid-template-columns: 1fr 2rem 3.2rem 3.8rem 2.4rem 3.2rem;
+  gap:0.3rem; padding:0.35rem 0.9rem;
+  background:var(--bg); border-bottom:1px solid var(--border);
+}
+.col-head { font-size:0.55rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
+.col-head.right { text-align:right; }
+.col-head.center { text-align:center; }
+
+/* Expense rows */
+.expense-scroll { flex:1; overflow-y:auto; }
+.expense-scroll::-webkit-scrollbar { width:3px; }
+.expense-scroll::-webkit-scrollbar-thumb { background:var(--border); }
+
+.expense-row {
+  display:grid;
+  grid-template-columns: 1fr 2rem 3.2rem 3.8rem 2.4rem 3.2rem;
+  gap:0.3rem; padding:0.7rem 0.9rem;
+  border-bottom:1px solid var(--border);
+  align-items:center; transition:background 0.1s;
+  animation:fadeUp 0.2s ease;
+}
+.expense-row:last-child { border-bottom:none; }
+
+/* Visual distinction via left stripe + subtle tint */
+.income-row {
+  border-left:3px solid var(--green);
+  background:rgba(91,191,138,0.03);
+}
+.expense-row-t {
+  border-left:3px solid var(--red);
+  background:rgba(192,96,90,0.03);
+}
+.income-row:hover  { background:rgba(91,191,138,0.08); }
+.expense-row-t:hover { background:rgba(192,96,90,0.07); }
+
+.exp-name  { font-size:0.8rem; color:var(--text); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.exp-qty   { font-size:0.7rem; color:var(--muted); text-align:right; }
+.exp-price { font-size:0.7rem; color:var(--muted); text-align:right; }
+.exp-amount { font-size:0.8rem; font-weight:500; text-align:right; }
+.exp-amount.income  { color:var(--green); }
+.exp-amount.expense { color:var(--red); }
+
+.type-badge {
+  font-size:0.54rem; letter-spacing:0.06em; text-transform:uppercase;
+  text-align:center; padding:0.18rem 0.25rem; border-radius:3px; white-space:nowrap;
+}
+.type-badge.income  { color:var(--green); background:var(--green-dim); border:1px solid var(--green-border); }
+.type-badge.expense { color:var(--red);   background:var(--red-dim);   border:1px solid var(--red-border); }
+
+.exp-actions { display:flex; gap:0.15rem; justify-content:flex-end; }
+.exp-act-btn {
+  background:none; border:none; cursor:pointer;
+  font-size:0.75rem; padding:0.22rem 0.28rem;
+  border-radius:3px; line-height:1; transition:color 0.15s;
+}
+.exp-act-btn.edit { color:var(--muted2); }
+.exp-act-btn.edit:hover { color:var(--gold); }
+.exp-act-btn.del  { color:var(--muted2); }
+.exp-act-btn.del:hover  { color:var(--red); }
+
+.empty-expenses {
+  padding:2.5rem 1rem; text-align:center;
+  color:var(--muted); font-size:0.75rem; letter-spacing:0.05em; line-height:1.9;
+}
+
+/* ─── MODALS ─── */
+.modal-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.82); z-index:100;
+  align-items:flex-end; justify-content:center;
+}
+.modal-overlay.open { display:flex; }
+.modal {
+  background:var(--s1); border:1px solid var(--border);
+  border-radius:var(--r) var(--r) 0 0;
+  padding:1.4rem 1.2rem 2.2rem;
+  width:100%; max-width:500px;
+  animation:slideUp 0.22s ease;
+}
+@keyframes slideUp {
+  from { transform:translateY(100%); opacity:0; }
+  to   { transform:translateY(0);    opacity:1; }
+}
+.modal h2 { font-family:'Syne',sans-serif; font-size:1.05rem; margin-bottom:0.9rem; }
+.modal h2.danger { color:var(--red); }
+.modal h2.normal { color:var(--gold); }
+.modal-warn {
+  font-size:0.76rem; color:var(--muted); margin-bottom:1rem; line-height:1.7;
+}
+.modal input {
+  width:100%; background:var(--bg); border:1px solid var(--border);
+  border-radius:4px; color:var(--text); font-family:'IBM Plex Mono',monospace;
+  font-size:0.88rem; padding:0.65rem 0.75rem; outline:none;
+  margin-bottom:0.6rem; transition:border-color 0.15s;
+}
+.modal input:focus { border-color:var(--gold); }
+
+.modal-type-toggle { display:flex; gap:0.4rem; margin-bottom:0.6rem; }
+.modal-type-btn {
+  flex:1; padding:0.5rem; border-radius:4px;
+  border:1px solid var(--border); background:var(--bg); color:var(--muted);
+  font-family:'IBM Plex Mono',monospace; font-size:0.72rem; font-weight:500;
+  cursor:pointer; letter-spacing:0.06em; text-transform:uppercase; transition:all 0.15s;
+}
+.modal-type-btn.active-expense { background:var(--red-dim);   border-color:var(--red-border);   color:var(--red); }
+.modal-type-btn.active-income  { background:var(--green-dim); border-color:var(--green-border); color:var(--green); }
+
+.modal-3col { display:grid; grid-template-columns:1fr 0.55fr 0.7fr; gap:0.5rem; margin-bottom:0.6rem; }
+.modal-3col input { margin-bottom:0; }
+
+.modal-btns { display:flex; gap:0.6rem; margin-top:0.4rem; }
+.btn-modal-cancel {
+  flex:1; background:var(--s2); color:var(--muted);
+  border:1px solid var(--border); border-radius:4px;
+  font-family:'IBM Plex Mono',monospace; font-size:0.82rem;
+  padding:0.65rem; cursor:pointer; transition:border-color 0.15s,color 0.15s;
+}
+.btn-modal-cancel:hover { border-color:var(--muted); color:var(--text); }
+.btn-modal-ok {
+  flex:1; border:none; border-radius:4px;
+  font-family:'IBM Plex Mono',monospace; font-size:0.82rem; font-weight:500;
+  padding:0.65rem; cursor:pointer; transition:background 0.15s;
+}
+.btn-modal-ok.gold   { background:var(--gold);  color:var(--bg); }
+.btn-modal-ok.gold:hover   { background:var(--gold2); }
+.btn-modal-ok.danger { background:var(--red);   color:#fff; }
+.btn-modal-ok.danger:hover { background:#d07070; }
+
+.install-banner {
+  display:none; background:var(--s2); border-top:1px solid var(--border);
+  padding:0.55rem 1rem; font-size:0.65rem; color:var(--muted);
+  text-align:center; letter-spacing:0.04em; cursor:pointer;
+}
+.install-banner.show { display:block; }
+.install-banner span { color:var(--gold); }
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(5px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ BOOKS SCREEN ══ -->
+<div id="books-screen" class="screen active">
+  <div class="books-header">
+    <div>
+      <h1>Expense Books</h1>
+      <p>Tap a book to open it</p>
+    </div>
+    <button class="btn-new-book" onclick="openNewBookModal()">+ New Book</button>
+  </div>
+  <div class="books-list" id="books-list"></div>
+  <div id="install-banner" class="install-banner" onclick="installApp()">
+    <span>Install as App</span> — tap here to add to your home screen
+  </div>
+</div>
+
+<!-- ══ BOOK DETAIL ══ -->
+<div id="book-screen" class="screen">
+  <div class="book-topbar">
+    <button class="btn-back" onclick="goBack()">← Books</button>
+    <div class="book-topbar-title" id="book-topbar-title"></div>
+  </div>
+
+  <div class="total-bar zero" id="total-bar">
+    <div>
+      <div class="total-bar-label" id="total-label">Balance</div>
+      <div class="total-bar-amount" id="book-total">0</div>
+    </div>
+    <div class="total-bar-right" id="total-breakdown"></div>
+  </div>
+
+  <div class="add-form">
+    <div class="type-toggle">
+      <button class="type-btn active-expense" id="type-btn-expense" onclick="setType('expense')">− Expense</button>
+      <button class="type-btn"                id="type-btn-income"  onclick="setType('income')">+ Income</button>
+    </div>
+    <div class="add-form-3col">
+      <input type="text"   id="inp-name"  placeholder="Name" />
+      <input type="number" id="inp-qty"   placeholder="Qty"  min="0" step="any" />
+      <input type="number" id="inp-price" placeholder="Price" min="0" step="any" />
+    </div>
+    <button class="btn-add-entry expense" id="btn-add" onclick="addEntry()">+ Add Expense</button>
+  </div>
+
+  <div class="col-heads">
+    <span class="col-head">Name</span>
+    <span class="col-head right">Qty</span>
+    <span class="col-head right">Price</span>
+    <span class="col-head right">Amount</span>
+    <span class="col-head center">Type</span>
+    <span class="col-head"></span>
+  </div>
+
+  <div class="expense-scroll" id="expense-list"></div>
+</div>
+
+<!-- MODAL: New Book -->
+<div class="modal-overlay" id="modal-new-book" onclick="closeModalOnBg(event,'modal-new-book')">
+  <div class="modal">
+    <h2 class="normal">New Book</h2>
+    <input type="text" id="inp-book-name" placeholder="e.g. Construction, Home, Car..." maxlength="40" />
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="closeModal('modal-new-book')">Cancel</button>
+      <button class="btn-modal-ok gold" onclick="createBook()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Edit Book -->
+<div class="modal-overlay" id="modal-edit-book" onclick="closeModalOnBg(event,'modal-edit-book')">
+  <div class="modal">
+    <h2 class="normal">Rename Book</h2>
+    <input type="text" id="inp-edit-book-name" placeholder="Book name..." maxlength="40" />
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="closeModal('modal-edit-book')">Cancel</button>
+      <button class="btn-modal-ok gold" onclick="saveEditBook()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Delete Book -->
+<div class="modal-overlay" id="modal-del-book" onclick="closeModalOnBg(event,'modal-del-book')">
+  <div class="modal">
+    <h2 class="danger">Delete Book?</h2>
+    <p class="modal-warn">Permanently delete "<strong id="del-book-name" style="color:var(--text)"></strong>" and all its entries? This cannot be undone.</p>
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="closeModal('modal-del-book')">Cancel</button>
+      <button class="btn-modal-ok danger" onclick="confirmDeleteBook()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Edit Item -->
+<div class="modal-overlay" id="modal-edit-item" onclick="closeModalOnBg(event,'modal-edit-item')">
+  <div class="modal">
+    <h2 class="normal">Edit Entry</h2>
+    <div class="modal-type-toggle">
+      <button class="modal-type-btn active-expense" id="edit-type-expense" onclick="setEditType('expense')">− Expense</button>
+      <button class="modal-type-btn"                id="edit-type-income"  onclick="setEditType('income')">+ Income</button>
+    </div>
+    <input type="text" id="edit-inp-name" placeholder="Name" />
+    <div class="modal-3col">
+      <input type="number" id="edit-inp-qty"   placeholder="Qty"   min="0" step="any" />
+      <input type="number" id="edit-inp-price" placeholder="Price" min="0" step="any" />
+    </div>
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="closeModal('modal-edit-item')">Cancel</button>
+      <button class="btn-modal-ok gold" onclick="saveEditItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Delete Item -->
+<div class="modal-overlay" id="modal-del-item" onclick="closeModalOnBg(event,'modal-del-item')">
+  <div class="modal">
+    <h2 class="danger">Delete Entry?</h2>
+    <p class="modal-warn">Remove "<strong id="del-item-name" style="color:var(--text)"></strong>" from this book? This cannot be undone.</p>
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="closeModal('modal-del-item')">Cancel</button>
+      <button class="btn-modal-ok danger" onclick="confirmDeleteItem()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let data = { books: [] };
+let currentBookId  = null;
+let currentType    = 'expense';
+let editItemType   = 'expense';
+let editBookId     = null;
+let deleteBookId   = null;
+let editItemId     = null;
+let deleteItemId   = null;
+let deferredInstall = null;
+
+// ── PERSIST ──
+function save() { try { localStorage.setItem('xpns_data', JSON.stringify(data)); } catch(e){} }
+function load() {
+  try { const r = localStorage.getItem('xpns_data'); if (r) data = JSON.parse(r); }
+  catch(e) { data = { books:[] }; }
+  if (!data.books) data.books = [];
+}
+
+// ── FORMAT (no currency symbol, no trailing zeros) ──
+function fmt(n) {
+  n = parseFloat(n); if (isNaN(n)) n = 0;
+  const a = Math.abs(n);
+  const s = a === Math.floor(a)
+    ? a.toLocaleString('en-US')
+    : a.toLocaleString('en-US', { minimumFractionDigits:0, maximumFractionDigits:2 });
+  return (n < 0 ? '−' : '') + s;
+}
+function fmtNum(n) {
+  n = parseFloat(n);
+  return n === Math.floor(n) ? n : parseFloat(n.toFixed(2));
+}
+
+// ── TYPE TOGGLE (add form) ──
+function setType(t) {
+  currentType = t;
+  document.getElementById('type-btn-expense').className = 'type-btn' + (t==='expense' ? ' active-expense':'');
+  document.getElementById('type-btn-income').className  = 'type-btn' + (t==='income'  ? ' active-income' :'');
+  const btn = document.getElementById('btn-add');
+  btn.className   = 'btn-add-entry ' + t;
+  btn.textContent = t === 'expense' ? '+ Add Expense' : '+ Add Income';
+}
+
+// ── EDIT ITEM TYPE TOGGLE ──
+function setEditType(t) {
+  editItemType = t;
+  document.getElementById('edit-type-expense').className = 'modal-type-btn' + (t==='expense' ? ' active-expense':'');
+  document.getElementById('edit-type-income').className  = 'modal-type-btn' + (t==='income'  ? ' active-income' :'');
+}
+
+// ── RENDER BOOKS ──
+function renderBooks() {
+  const list = document.getElementById('books-list');
+  list.innerHTML = '';
+  if (!data.books.length) {
+    list.innerHTML = `<div class="empty-books">No books yet.<br>Tap <strong style="color:var(--gold)">+ New Book</strong> to get started.</div>`;
+    return;
+  }
+  data.books.forEach(book => {
+    const exps = book.expenses || [];
+    const inc  = exps.filter(e=>e.type==='income').reduce((s,e)=>s+e.amount,0);
+    const exp  = exps.filter(e=>e.type!=='income').reduce((s,e)=>s+e.amount,0);
+    const bal  = inc - exp;
+    const cls  = bal > 0 ? 'pos' : bal < 0 ? 'neg' : 'zero';
+    const sign = bal > 0 ? '+' : '';
+    const div = document.createElement('div');
+    div.className = 'book-card';
+    div.innerHTML = `
+      <div class="book-card-body" onclick="openBook('${book.id}')">
+        <div class="book-name">${esc(book.name)}</div>
+        <div class="book-meta">Created ${book.created} · ${exps.length} item${exps.length!==1?'s':''}</div>
+      </div>
+      <div class="book-card-right" onclick="openBook('${book.id}')">
+        <div class="book-total ${cls}">${sign}${fmt(bal)}</div>
+      </div>
+      <div class="book-actions">
+        <button class="book-act-btn edit" onclick="openEditBookModal('${book.id}',event)" title="Rename">✎</button>
+        <button class="book-act-btn del"  onclick="promptDeleteBook('${book.id}',event)"  title="Delete">✕</button>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+// ── OPEN/BACK ──
+function openBook(id) {
+  currentBookId = id;
+  const book = data.books.find(b=>b.id===id);
+  document.getElementById('book-topbar-title').textContent = book.name;
+  document.getElementById('inp-name').value = '';
+  document.getElementById('inp-qty').value  = '';
+  document.getElementById('inp-price').value = '';
+  setType('expense');
+  showScreen('book-screen');
+  renderBook();
+}
+function goBack() {
+  currentBookId = null;
+  showScreen('books-screen');
+  renderBooks();
+}
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── RENDER BOOK DETAIL ──
+function renderBook() {
+  const book = data.books.find(b=>b.id===currentBookId);
+  if (!book) return;
+  const exps = book.expenses || [];
+  const inc  = exps.filter(e=>e.type==='income').reduce((s,e)=>s+e.amount,0);
+  const exp  = exps.filter(e=>e.type!=='income').reduce((s,e)=>s+e.amount,0);
+  const bal  = inc - exp;
+
+  const bar = document.getElementById('total-bar');
+  bar.className = 'total-bar ' + (bal>0?'pos':bal<0?'neg':'zero');
+  document.getElementById('book-total').textContent  = (bal>0?'+':'') + fmt(bal);
+  document.getElementById('total-label').textContent = bal>=0 ? 'Balance' : 'Deficit';
+  document.getElementById('total-breakdown').innerHTML =
+    `<div>In: +${fmt(inc)}</div><div>Out: −${fmt(exp)}</div><div>${exps.length} item${exps.length!==1?'s':''}</div>`;
+
+  const list = document.getElementById('expense-list');
+  list.innerHTML = '';
+  if (!exps.length) {
+    list.innerHTML = '<div class="empty-expenses">No entries yet.<br>Add an expense or income above.</div>';
+    return;
+  }
+  exps.forEach(e => {
+    const isIn = e.type === 'income';
+    const row  = document.createElement('div');
+    row.className = 'expense-row ' + (isIn ? 'income-row' : 'expense-row-t');
+    row.innerHTML = `
+      <span class="exp-name">${esc(e.name)}</span>
+      <span class="exp-qty">${fmtNum(e.qty)}</span>
+      <span class="exp-price">${fmt(e.price)}</span>
+      <span class="exp-amount ${isIn?'income':'expense'}">${isIn?'+':'−'}${fmt(e.amount)}</span>
+      <span class="type-badge ${isIn?'income':'expense'}">${isIn?'IN':'OUT'}</span>
+      <div class="exp-actions">
+        <button class="exp-act-btn edit" onclick="openEditItemModal('${e.id}',event)" title="Edit">✎</button>
+        <button class="exp-act-btn del"  onclick="promptDeleteItem('${e.id}',event)"  title="Delete">✕</button>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+// ── ADD ENTRY ──
+function addEntry() {
+  const name  = document.getElementById('inp-name').value.trim();
+  const qty   = parseFloat(document.getElementById('inp-qty').value);
+  const price = parseFloat(document.getElementById('inp-price').value);
+  if (!name)               { hilite('inp-name');  return; }
+  if (isNaN(qty)||qty<=0)  { hilite('inp-qty');   return; }
+  if (isNaN(price)||price<0){ hilite('inp-price'); return; }
+  const book = data.books.find(b=>b.id===currentBookId);
+  if (!book) return;
+  if (!book.expenses) book.expenses = [];
+  book.expenses.push({ id:uid(), name, qty, price, amount:qty*price, type:currentType });
+  save();
+  document.getElementById('inp-name').value = '';
+  document.getElementById('inp-qty').value  = '';
+  document.getElementById('inp-price').value = '';
+  document.getElementById('inp-name').focus();
+  renderBook();
+}
+
+// ── EDIT ITEM ──
+function openEditItemModal(id, e) {
+  e && e.stopPropagation();
+  const book = data.books.find(b=>b.id===currentBookId);
+  const item = (book.expenses||[]).find(x=>x.id===id);
+  if (!item) return;
+  editItemId = id;
+  setEditType(item.type||'expense');
+  document.getElementById('edit-inp-name').value  = item.name;
+  document.getElementById('edit-inp-qty').value   = item.qty;
+  document.getElementById('edit-inp-price').value = item.price;
+  openModal('modal-edit-item');
+  setTimeout(()=>document.getElementById('edit-inp-name').focus(),120);
+}
+function saveEditItem() {
+  const name  = document.getElementById('edit-inp-name').value.trim();
+  const qty   = parseFloat(document.getElementById('edit-inp-qty').value);
+  const price = parseFloat(document.getElementById('edit-inp-price').value);
+  if (!name)               { hiliteEl('edit-inp-name');  return; }
+  if (isNaN(qty)||qty<=0)  { hiliteEl('edit-inp-qty');   return; }
+  if (isNaN(price)||price<0){ hiliteEl('edit-inp-price'); return; }
+  const book = data.books.find(b=>b.id===currentBookId);
+  const item = (book.expenses||[]).find(x=>x.id===editItemId);
+  if (!item) return;
+  Object.assign(item, { name, qty, price, amount:qty*price, type:editItemType });
+  save(); closeModal('modal-edit-item'); renderBook();
+}
+
+// ── DELETE ITEM ──
+function promptDeleteItem(id, e) {
+  e && e.stopPropagation();
+  const book = data.books.find(b=>b.id===currentBookId);
+  const item = (book.expenses||[]).find(x=>x.id===id);
+  if (!item) return;
+  deleteItemId = id;
+  document.getElementById('del-item-name').textContent = item.name;
+  openModal('modal-del-item');
+}
+function confirmDeleteItem() {
+  const book = data.books.find(b=>b.id===currentBookId);
+  if (book) book.expenses = (book.expenses||[]).filter(e=>e.id!==deleteItemId);
+  deleteItemId = null; save(); closeModal('modal-del-item'); renderBook();
+}
+
+// ── BOOK CRUD ──
+function openNewBookModal() {
+  document.getElementById('inp-book-name').value = '';
+  openModal('modal-new-book');
+  setTimeout(()=>document.getElementById('inp-book-name').focus(),120);
+}
+function createBook() {
+  const name = document.getElementById('inp-book-name').value.trim();
+  if (!name) { hiliteEl('inp-book-name'); return; }
+  data.books.push({ id:uid(), name, created:new Date().toLocaleDateString('en-US',{month:'short',year:'numeric'}), expenses:[] });
+  save(); closeModal('modal-new-book'); renderBooks();
+}
+
+function openEditBookModal(id, e) {
+  e && e.stopPropagation();
+  editBookId = id;
+  const book = data.books.find(b=>b.id===id);
+  document.getElementById('inp-edit-book-name').value = book.name;
+  openModal('modal-edit-book');
+  setTimeout(()=>document.getElementById('inp-edit-book-name').focus(),120);
+}
+function saveEditBook() {
+  const name = document.getElementById('inp-edit-book-name').value.trim();
+  if (!name) { hiliteEl('inp-edit-book-name'); return; }
+  const book = data.books.find(b=>b.id===editBookId);
+  if (book) { book.name = name; if (currentBookId===editBookId) document.getElementById('book-topbar-title').textContent = name; }
+  save(); closeModal('modal-edit-book'); renderBooks();
+}
+
+function promptDeleteBook(id, e) {
+  e && e.stopPropagation();
+  deleteBookId = id;
+  const book = data.books.find(b=>b.id===id);
+  document.getElementById('del-book-name').textContent = book ? book.name : '';
+  openModal('modal-del-book');
+}
+function confirmDeleteBook() {
+  data.books = data.books.filter(b=>b.id!==deleteBookId);
+  deleteBookId = null; save(); closeModal('modal-del-book'); renderBooks();
+}
+
+// ── MODAL HELPERS ──
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModalOnBg(e,id) { if (e.target===e.currentTarget) closeModal(id); }
+
+function hilite(id)   { hiliteEl(id); }
+function hiliteEl(id) {
+  const el = document.getElementById(id);
+  el.style.borderColor = 'var(--red)';
+  el.focus();
+  setTimeout(()=>el.style.borderColor='', 900);
+}
+
+// ── UTILS ──
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── PWA INSTALL ──
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredInstall = e;
+  document.getElementById('install-banner').classList.add('show');
+});
+function installApp() {
+  if (!deferredInstall) return;
+  deferredInstall.prompt();
+  deferredInstall.userChoice.then(()=>{ deferredInstall=null; document.getElementById('install-banner').classList.remove('show'); });
+}
+
+// ── KEYBOARD ──
+document.getElementById('inp-book-name').addEventListener('keydown',      e=>{ if(e.key==='Enter') createBook(); });
+document.getElementById('inp-edit-book-name').addEventListener('keydown', e=>{ if(e.key==='Enter') saveEditBook(); });
+['inp-name','inp-qty','inp-price'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{ if(e.key==='Enter') addEntry(); }));
+['edit-inp-name','edit-inp-qty','edit-inp-price'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{ if(e.key==='Enter') saveEditItem(); }));
+
+// ── SERVICE WORKER ──
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// ── INIT ──
+load(); renderBooks();
+</script>
+</body>
+</html>
